@@ -1,7 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// Create a new ratelimiter that allows 5 requests per 10 seconds
 export const rateLimit = new Ratelimit({
   redis: Redis.fromEnv(),
   limiter: Ratelimit.slidingWindow(5, "10 s"),
@@ -9,9 +8,9 @@ export const rateLimit = new Ratelimit({
   prefix: "@upstash/ratelimit",
 });
 
-// Simple in-memory rate limiter (fallback if no Redis)
+
 const requests = new Map<string, { count: number; lastReset: number }>();
-const WINDOW_MS = 60 * 1000; // 1 minute
+const WINDOW_MS = 60 * 1000; 
 const MAX_REQUESTS = 10;
 
 export function simpleRateLimit(identifier: string): {
