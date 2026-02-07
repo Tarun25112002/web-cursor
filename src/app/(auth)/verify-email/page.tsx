@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { verifyEmail } from "@/actions/auth.actions";
 import { AuthCard } from "@/components/auth/auth-card";
@@ -17,30 +17,39 @@ function VerifyEmailForm() {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
 
-  const onSubmit = useCallback(async () => {
-    if (!token) {
-      setError("Missing token!");
-      return;
-    }
+  useEffect(() => {
+    if (!token) return;
 
-    try {
-      const result = await verifyEmail(token);
+    let isMounted = true;
 
-      if (result.error) {
-        setError(result.error);
+    const verify = async () => {
+      try {
+        const result = await verifyEmail(token);
+
+        if (!isMounted) return;
+
+        if (result.error) {
+          setError(result.error);
+        }
+
+        if (result.success && result.message) {
+          setSuccess(result.message);
+        }
+      } catch {
+        if (isMounted) {
+          setError("Something went wrong!");
+        }
       }
+    };
 
-      if (result.success && result.message) {
-        setSuccess(result.message);
-      }
-    } catch {
-      setError("Something went wrong!");
-    }
+    void verify();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
-  useEffect(() => {
-    onSubmit();
-  }, [onSubmit]);
+  const displayError = error || (!token ? "Missing token!" : undefined);
 
   return (
     <AuthCard
@@ -48,7 +57,7 @@ function VerifyEmailForm() {
       description="Confirming your email address"
     >
       <div className="flex flex-col items-center space-y-4">
-        {!success && !error && (
+        {!success && !displayError && (
           <div className="flex items-center space-x-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">
@@ -57,10 +66,10 @@ function VerifyEmailForm() {
           </div>
         )}
 
-        <FormError message={error} />
+        <FormError message={displayError} />
         <FormSuccess message={success} />
 
-        {(success || error) && (
+        {(success || displayError) && (
           <Link href="/login" className="w-full">
             <Button className="w-full">Back to login</Button>
           </Link>

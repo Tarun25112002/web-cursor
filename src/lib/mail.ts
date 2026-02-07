@@ -1,7 +1,16 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const domain = process.env.NEXT_PUBLIC_APP_URL;
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL;
+const domain = appUrl?.replace(/\/$/, "");
+
+function getDomain() {
+  if (!domain) {
+    throw new Error("Missing NEXT_PUBLIC_APP_URL or NEXTAUTH_URL");
+  }
+
+  return domain;
+}
 
 export async function sendTwoFactorEmail(email: string, token: string) {
   try {
@@ -79,7 +88,7 @@ export async function sendTwoFactorEmail(email: string, token: string) {
 }
 
 export async function sendVerificationEmail(email: string, token: string) {
-  const confirmLink = `${domain}/verify-email?token=${token}`;
+  const confirmLink = `${getDomain()}/verify-email?token=${token}`;
 
   try {
     await resend.emails.send({
@@ -139,7 +148,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const resetLink = `${domain}/new-password?token=${token}`;
+  const resetLink = `${getDomain()}/reset-password?token=${token}`;
 
   try {
     await resend.emails.send({

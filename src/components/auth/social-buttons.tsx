@@ -5,14 +5,18 @@ import { signInWithGoogle, signInWithGithub } from "@/actions/auth.actions";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
-export function SocialButtons() {
+interface SocialButtonsProps {
+  callbackUrl?: string | null;
+}
+
+export function SocialButtons({ callbackUrl }: SocialButtonsProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
     setIsLoading("google");
     try {
-      await signInWithGoogle();
-    } catch (error) {
+      await signInWithGoogle(callbackUrl ?? undefined);
+    } catch {
       setIsLoading(null);
     }
   };
@@ -20,8 +24,8 @@ export function SocialButtons() {
   const handleGithubSignIn = async () => {
     setIsLoading("github");
     try {
-      await signInWithGithub();
-    } catch (error) {
+      await signInWithGithub(callbackUrl ?? undefined);
+    } catch {
       setIsLoading(null);
     }
   };

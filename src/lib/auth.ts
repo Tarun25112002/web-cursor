@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "./db";
 import authConfig from "./auth.config";
-import { getUserById } from "@/actions/user.actions";
-import { getTwoFactorConfirmationByUserId } from "@/actions/auth.actions";
+import { getUserByEmail, getUserById } from "@/data/user";
+import { getTwoFactorConfirmationByUserId } from "@/data/tokens";
 import { UserRole } from "@prisma/client";
 
 export const {
@@ -26,40 +26,46 @@ export const {
   },
   callbacks: {
     async signIn({ user, account }) {
-      
-      if (account?.provider !== "credentials") return true;
+      if (account?.provider === "credentials") {
+        if (!user.id) return false;
 
-      if (!user.id) return false;
+        const existingUser = await getUserById(user.id);
 
-      const existingUser = await getUserById(user.id);
+        if (!existingUser?.emailVerified) return false;
+        if (!existingUser.isActive) return false;
 
-    
-      if (!existingUser?.emailVerified) return false;
+        if (existingUser.isTwoFactorEnabled) {
+          const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(
+            existingUser.id,
+          );
 
-     
-      if (!existingUser.isActive) return false;
+          if (!twoFactorConfirmation) return false;
 
-      
-      if (existingUser.isTwoFactorEnabled) {
-        const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(
-          existingUser.id,
-        );
+          await db.twoFactorConfirmation.delete({
+            where: { id: twoFactorConfirmation.id },
+          });
+        }
+      } else {
+        const existingUser =
+          (user.id ? await getUserById(user.id) : null) ??
+          (user.email ? await getUserByEmail(user.email) : null);
 
-        if (!twoFactorConfirmation) return false;
-
-      
-        await db.twoFactorConfirmation.delete({
-          where: { id: twoFactorConfirmation.id },
-        });
+        if (existingUser && !existingUser.isActive) return false;
       }
 
-     
-      await db.loginHistory.create({
-        data: {
-          userId: user.id,
-          success: true,
-        },
-      });
+      // Login history should never block a successful authentication.
+      if (user.id) {
+        try {
+          await db.loginHistory.create({
+            data: {
+              userId: user.id,
+              success: true,
+            },
+          });
+        } catch (error) {
+          console.error("Failed to write login history:", error);
+        }
+      }
 
       return true;
     },

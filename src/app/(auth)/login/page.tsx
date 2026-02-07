@@ -57,7 +57,7 @@ function LoginForm() {
         setError(result.error);
       }
 
-      if (result.success && result.data && (result.data as any).twoFactor) {
+      if (result.success && result.data?.twoFactor) {
         setShowTwoFactor(true);
       }
 
@@ -83,7 +83,7 @@ function LoginForm() {
               </span>
             </div>
           </div>
-          <SocialButtons />
+          <SocialButtons callbackUrl={callbackUrl} />
           <div className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link

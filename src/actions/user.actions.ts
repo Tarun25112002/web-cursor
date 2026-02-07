@@ -5,26 +5,7 @@ import { auth } from "@/lib/auth";
 import { ProfileSchema, type ProfileInput } from "@/lib/validation";
 import type { ActionResponse } from "@/types";
 import bcrypt from "bcryptjs";
-
-export async function getUserByEmail(email: string) {
-  try {
-    return await db.user.findUnique({
-      where: { email },
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function getUserById(id: string) {
-  try {
-    return await db.user.findUnique({
-      where: { id },
-    });
-  } catch {
-    return null;
-  }
-}
+import { getUserById } from "@/data/user";
 
 export async function getCurrentUser() {
   const session = await auth();

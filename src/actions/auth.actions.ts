@@ -13,18 +13,53 @@ import {
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { generateToken } from "@/lib/utils";
-import { getUserByEmail } from "./user.actions";
 import type { ActionResponse } from "@/types";
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendTwoFactorEmail,
 } from "@/lib/mail";
+import { DEFAULT_LOGIN_REDIRECT } from "@/lib/routes";
+import { getUserByEmail } from "@/data/user";
+import {
+  getPasswordResetTokenByEmail,
+  getTwoFactorConfirmationByUserId,
+  getTwoFactorTokenByEmail,
+  getVerificationTokenByEmail,
+} from "@/data/tokens";
+
+function getSafeRedirectPath(callbackUrl?: string | null): string {
+  if (!callbackUrl) return DEFAULT_LOGIN_REDIRECT;
+  if (callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")) {
+    return callbackUrl;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL;
+  if (!appUrl) return DEFAULT_LOGIN_REDIRECT;
+
+  try {
+    const callback = new URL(callbackUrl);
+    const allowedOrigin = new URL(appUrl);
+
+    if (callback.origin !== allowedOrigin.origin) {
+      return DEFAULT_LOGIN_REDIRECT;
+    }
+
+    const safePath = `${callback.pathname}${callback.search}${callback.hash}`;
+    return safePath || DEFAULT_LOGIN_REDIRECT;
+  } catch {
+    return DEFAULT_LOGIN_REDIRECT;
+  }
+}
+
+type LoginActionData = {
+  twoFactor?: boolean;
+};
 
 export async function login(
   values: LoginInput,
   callbackUrl?: string | null,
-): Promise<ActionResponse> {
+): Promise<ActionResponse<LoginActionData>> {
   const validatedFields = LoginSchema.safeParse(values);
 
   if (!validatedFields.success) {
@@ -90,7 +125,7 @@ export async function login(
     } else {
       const twoFactorToken = await generateTwoFactorToken(existingUser.email);
       await sendTwoFactorEmail(existingUser.email, twoFactorToken.token);
-      return { success: true, data: { twoFactor: true } as any };
+      return { success: true, data: { twoFactor: true } };
     }
   }
 
@@ -98,7 +133,7 @@ export async function login(
     await signIn("credentials", {
       email,
       password,
-      redirectTo: callbackUrl || "/",
+      redirectTo: getSafeRedirectPath(callbackUrl),
     });
 
     return { success: true };
@@ -152,11 +187,11 @@ export async function logout(): Promise<void> {
 }
 
 export async function signInWithGoogle(callbackUrl?: string): Promise<void> {
-  await signIn("google", { redirectTo: callbackUrl || "/" });
+  await signIn("google", { redirectTo: getSafeRedirectPath(callbackUrl) });
 }
 
 export async function signInWithGithub(callbackUrl?: string): Promise<void> {
-  await signIn("github", { redirectTo: callbackUrl || "/" });
+  await signIn("github", { redirectTo: getSafeRedirectPath(callbackUrl) });
 }
 
 export async function generateVerificationToken(email: string) {
@@ -226,46 +261,6 @@ export async function generateTwoFactorToken(email: string) {
   });
 
   return twoFactorToken;
-}
-
-export async function getVerificationTokenByEmail(email: string) {
-  try {
-    return await db.verificationToken.findFirst({
-      where: { email },
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function getPasswordResetTokenByEmail(email: string) {
-  try {
-    return await db.passwordResetToken.findFirst({
-      where: { email },
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function getTwoFactorTokenByEmail(email: string) {
-  try {
-    return await db.twoFactorToken.findFirst({
-      where: { email },
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function getTwoFactorConfirmationByUserId(userId: string) {
-  try {
-    return await db.twoFactorConfirmation.findUnique({
-      where: { userId },
-    });
-  } catch {
-    return null;
-  }
 }
 
 export async function verifyEmail(token: string): Promise<ActionResponse> {
