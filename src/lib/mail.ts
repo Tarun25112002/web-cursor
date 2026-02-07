@@ -15,7 +15,7 @@ function getDomain() {
 export async function sendTwoFactorEmail(email: string, token: string) {
   try {
     await resend.emails.send({
-      from: "Auth App <onboarding@resend.dev>", // Use your verified domain in production
+      from: "Web Cursor <onboarding@resend.dev>", // Use your verified domain in production
       to: email,
       subject: "🔐 Your Two-Factor Authentication Code",
       html: `
@@ -70,7 +70,7 @@ export async function sendTwoFactorEmail(email: string, token: string) {
               <!-- Footer -->
               <div style="text-align: center; margin-top: 30px;">
                 <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                  © ${new Date().getFullYear()} Auth App. All rights reserved.
+                  © ${new Date().getFullYear()} Web Cursor. All rights reserved.
                 </p>
               </div>
             </div>
@@ -92,7 +92,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 
   try {
     await resend.emails.send({
-      from: "Auth App <onboarding@resend.dev>",
+      from: "Web Cursor <onboarding@resend.dev>",
       to: email,
       subject: "✉️ Verify Your Email Address",
       html: `
@@ -152,7 +152,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   try {
     await resend.emails.send({
-      from: "Auth App <onboarding@resend.dev>",
+      from: "Web Cursor <onboarding@resend.dev>",
       to: email,
       subject: "🔑 Reset Your Password",
       html: `
